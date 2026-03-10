@@ -4,7 +4,7 @@ import xlsx from 'xlsx';
 
 const file = process.argv[2];
 if (!file) {
-  console.error('Usage: npm run import:workbook -- <path-to-xlsx>');
+  console.error('Usage: npm run import:workbook -- <./tennis_player_training_tracker_final.xlsx>');
   process.exit(1);
 }
 
