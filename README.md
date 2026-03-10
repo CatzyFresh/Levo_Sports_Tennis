@@ -23,8 +23,68 @@ The provided workbook screenshots were used as source-of-truth for initial schem
 Files:
 - `types/models.ts`: app domain model
 - `data/seed.ts`: workbook-derived seed dataset
-- `lib/importWorkbook.ts`: import utility abstraction for future xlsx parsing
+- `lib/importWorkbook.ts`: import utility abstraction for startup seed loading
+- `lib/workbookMapper.ts`: workbook-json to app-data mapper for real imports
 - `lib/derived.ts`: match derivation, win %, rankings, H2H analytics
+
+---
+
+## How to upload your 2-day sheet into the app
+
+Use this workflow whenever you have a new workbook with 1+ days of coaching data.
+
+### 1) Put your Excel workbook in the project root
+Example:
+- `tennis_player_training_tracker_final.xlsx`
+
+### 2) Convert workbook sheets to normalized JSON
+Run:
+
+```bash
+npm run import:workbook -- ./tennis_player_training_tracker_final.xlsx
+```
+
+This generates:
+- `data/workbook-import.json`
+
+### 3) Map that workbook JSON to app model JSON
+Create a small one-time Node/TS runner that imports `mapWorkbookJsonToAppData` from `lib/workbookMapper.ts` and writes an output file (for example `data/app-import.json`).
+
+Expected source sheet names (or close matches):
+- `Player Profile`
+- `Session Log`
+- `Skill Metrics`
+- `Attendance` (optional)
+- `Tournaments` (optional)
+- `Goals` (optional)
+
+### 4) Start the app
+
+```bash
+npm run dev
+```
+
+### 5) Open Settings / Data Tools in the app
+- Click **Import JSON** area
+- Paste the contents of your generated app-model JSON
+- Click **Import JSON** button
+
+The app will automatically:
+- store imported rows,
+- regenerate derived `Match Data` from `Session Log`,
+- update rankings, win %, H2H, and dashboard.
+
+### 6) Validate your 2-day data
+Check pages in this order:
+1. Session Log (all rows visible)
+2. Match Data (auto-derived rows)
+3. Rankings
+4. Dashboard stats
+5. Progress charts
+
+> Tip: if you need to re-run import, use **Reset demo data** first, then import again.
+
+---
 
 ## Ranking formula (MVP)
 
@@ -42,14 +102,15 @@ Shown in Rankings UI for transparency.
 - `store/`: Zustand store + localStorage persistence
 - `lib/`: utility logic and derivations
 - `types/`: TypeScript types
-- `data/`: seeded workbook data
+- `data/`: seeded workbook data + generated workbook import files
+- `scripts/`: CLI helpers for workbook import
 
 ## Future migration path to Supabase/Postgres
 
 1. Keep `types/models.ts` unchanged for API contracts.
 2. Replace `store/useAppStore.ts` local mutations with server actions or API calls.
 3. Keep `lib/derived.ts` pure for reuse on backend.
-4. Replace `importWorkbookSeed` with upload + server parser (`xlsx`) and data insertion.
+4. Replace local import pipeline with upload API + parser worker.
 5. Add auth and role-based access for coaches/admin.
 
 ## Notes
