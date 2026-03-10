@@ -1,16 +1,19 @@
 "use client";
 import { DataTable } from "@/components/data-table";
+import { EditModal } from "@/components/edit-modal";
 import { deriveResult } from "@/lib/derived";
 import { id } from "@/lib/client";
+import { SessionLogEntry } from "@/types/models";
 import { useAppStore } from "@/store/useAppStore";
 import { useState } from "react";
 
 export default function SessionLogPage() {
-  const { players, sessionLogs, addSession } = useAppStore();
+  const { players, sessionLogs, addSession, updateSession, deleteSession } = useAppStore();
   const [playerId, setPlayerId] = useState(players[0]?.id ?? "");
   const [scoreFor, setScoreFor] = useState("");
   const [scoreAgainst, setScoreAgainst] = useState("");
   const [opponentName, setOpponentName] = useState("");
+  const [editing, setEditing] = useState<SessionLogEntry | null>(null);
   return <div className="space-y-4"><h2 className="text-2xl font-bold">Session Log (source of truth)</h2>
   <div className="bg-card p-3 rounded border border-slate-800 grid md:grid-cols-7 gap-2">
     <input type="date" defaultValue="2026-09-05" id="date" />
@@ -28,6 +31,18 @@ export default function SessionLogPage() {
       setScoreFor(""); setScoreAgainst(""); setOpponentName("");
     }}>Quick Add</button>
   </div>
-  <DataTable headers={["Date", "Player", "Activity", "Drill", "Opponent", "Score", "Result", "Dur(min)"]} rows={sessionLogs.map((s) => [s.date, players.find((p) => p.id === s.playerId)?.fullName ?? s.playerId, s.activityType, s.drillName, s.opponentName ?? "-", s.scoreFor != null ? `${s.scoreFor}-${s.scoreAgainst}` : "-", s.result ?? "NA", s.durationMin])} />
+  <DataTable headers={["Date", "Player", "Activity", "Drill", "Opponent", "Score", "Result", "Dur", "Actions"]} rows={sessionLogs.map((s) => [s.date, players.find((p) => p.id === s.playerId)?.fullName ?? s.playerId, s.activityType, s.drillName, s.opponentName ?? "-", s.scoreFor != null ? `${s.scoreFor}-${s.scoreAgainst}` : "-", s.result ?? "NA", s.durationMin, <div key={s.id} className="flex gap-2"><button className="text-cyan-300" onClick={() => setEditing(s)}>Edit</button><button className="text-red-300" onClick={() => deleteSession(s.id)}>Delete</button></div>])} />
+
+  <EditModal open={!!editing} title="Edit session log" onClose={() => setEditing(null)}>
+    {editing && <div className="grid grid-cols-2 gap-2">
+      <input type="date" value={editing.date} onChange={(e) => setEditing({ ...editing, date: e.target.value })} />
+      <select value={editing.playerId} onChange={(e) => setEditing({ ...editing, playerId: e.target.value })}>{players.map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}</select>
+      <input value={editing.drillName} onChange={(e) => setEditing({ ...editing, drillName: e.target.value })} />
+      <input value={editing.opponentName ?? ""} onChange={(e) => setEditing({ ...editing, opponentName: e.target.value || undefined })} placeholder="Opponent" />
+      <input type="number" value={editing.scoreFor ?? ""} onChange={(e) => { const sf = e.target.value ? Number(e.target.value) : undefined; setEditing({ ...editing, scoreFor: sf, result: deriveResult(sf, editing.scoreAgainst) }); }} placeholder="Score for" />
+      <input type="number" value={editing.scoreAgainst ?? ""} onChange={(e) => { const sa = e.target.value ? Number(e.target.value) : undefined; setEditing({ ...editing, scoreAgainst: sa, result: deriveResult(editing.scoreFor, sa) }); }} placeholder="Score against" />
+      <div className="col-span-2 flex justify-end gap-2"><button className="bg-slate-700 px-3 py-1 rounded" onClick={() => setEditing(null)}>Cancel</button><button className="bg-cyan-600 px-3 py-1 rounded" onClick={() => { updateSession(editing); setEditing(null); }}>Save</button></div>
+    </div>}
+  </EditModal>
   </div>;
 }
