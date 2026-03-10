@@ -1,4 +1,6 @@
-export function DataTable({ headers, rows }: { headers: string[]; rows: Array<Array<string | number>> }) {
+import { ReactNode } from "react";
+
+export function DataTable({ headers, rows }: { headers: string[]; rows: Array<Array<ReactNode>> }) {
   return (
     <div className="overflow-auto rounded-lg border border-slate-800">
       <table className="w-full text-sm">

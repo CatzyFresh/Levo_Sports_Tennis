@@ -47,6 +47,18 @@ export function mapWorkbookJsonToAppData(input: WorkbookJson): AppData {
 
   const playerByName = new Map(players.map((p) => [p.fullName.toLowerCase(), p.id]));
 
+
+  // Auto-create missing players referenced in Session Log rows.
+  const knownNames = new Set(players.map((p) => p.fullName.toLowerCase()));
+  (input.sessionLog ?? []).forEach((row) => {
+    const n = normalize(row["Player Name"] ?? row["playerName"]);
+    if (!n || knownNames.has(n.toLowerCase())) return;
+    const id = `P-AUTO-${String(players.length + 1).padStart(3, "0")}`;
+    players.push({ id, fullName: n, active: true, createdAt: new Date().toISOString().slice(0, 10) });
+    knownNames.add(n.toLowerCase());
+    playerByName.set(n.toLowerCase(), id);
+  });
+
   const sessionLogs: SessionLogEntry[] = (input.sessionLog ?? []).map((row, idx) => {
     const sf = toNumber(row["Score For"] ?? row["scoreFor"]);
     const sa = toNumber(row["Score Against"] ?? row["scoreAgainst"]);
